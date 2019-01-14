@@ -225,10 +225,12 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             Relationship targetRelationship = REL_NOT_FOUND;
             writer.beginRecordSet();
 
+            int enrichedCount = 0;
             while ((record = reader.nextRecord()) != null) {
                 CityResponse response = geocode(ipPath, record, dbReader);
-                boolean wasEnriched = enrichRecord(response, record, writer, paths);
+                boolean wasEnriched = enrichRecord(response, record, paths);
                 if (wasEnriched) {
+                    enrichedCount++;
                     targetRelationship = REL_FOUND;
                 }
                 if (!splitOutput || (splitOutput && wasEnriched)) {
@@ -266,7 +268,11 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
         Optional<FieldValue> ipField = result.getSelectedFields().findFirst();
         if (ipField.isPresent()) {
             FieldValue value = ipField.get();
-            String realValue = value.getValue().toString();
+            Object val = value.getValue();
+            if (val == null) {
+                return null;
+            }
+            String realValue = val.toString();
             InetAddress address = InetAddress.getByName(realValue);
 
             return reader.city(address);
@@ -275,8 +281,14 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
         }
     }
 
-    private boolean enrichRecord(CityResponse response, Record record, RecordSetWriter writer, Map<PropertyDescriptor, RecordPath> cached) {
+    private boolean enrichRecord(CityResponse response, Record record, Map<PropertyDescriptor, RecordPath> cached) {
         boolean retVal;
+
+        if (response == null) {
+            return false;
+        } else if (response.getCity() == null) {
+            return false;
+        }
 
         boolean city = update(GEO_CITY, cached, record, response.getCity().getName());
         boolean accuracy = update(GEO_ACCURACY, cached, record, response.getCity().getConfidence());
