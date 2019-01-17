@@ -225,12 +225,10 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             Relationship targetRelationship = REL_NOT_FOUND;
             writer.beginRecordSet();
 
-            int enrichedCount = 0;
             while ((record = reader.nextRecord()) != null) {
                 CityResponse response = geocode(ipPath, record, dbReader);
                 boolean wasEnriched = enrichRecord(response, record, paths);
                 if (wasEnriched) {
-                    enrichedCount++;
                     targetRelationship = REL_FOUND;
                 }
                 if (!splitOutput || (splitOutput && wasEnriched)) {
